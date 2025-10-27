@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import SplashScreen from "./components/SplashScreen";
+import { AnimatePresence, motion } from "framer-motion";
+
 import {
   AppBar,
   Toolbar,
@@ -28,7 +31,8 @@ import {
   Download,
 } from "@mui/icons-material";
 
-const API_URL = "https://inventory-app-1-9frl.onrender.com";
+// const API_URL = "https://inventory-app-1-9frl.onrender.com";
+const API_URL = "http://127.0.0.1:8000";
 
 const theme = createTheme({
   palette: {
@@ -43,6 +47,7 @@ const theme = createTheme({
 });
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
@@ -56,20 +61,29 @@ export default function App() {
   const [editQty, setEditQty] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Load items
+  // Splash screen timer (6 seconds)
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Load items after splash ends
+  useEffect(() => {
+    if (!showSplash) loadItems();
+  }, [showSplash]);
+
+  // Fetch inventory from backend
   const loadItems = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/items`);
       setItems(res.data);
+    } catch (err) {
+      console.error("Error fetching items:", err);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadItems();
-  }, []);
 
   const saveItem = async () => {
     if (!form.item) return;
@@ -159,202 +173,238 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Top bar */}
-        <AppBar position="static" color="primary" sx={{ boxShadow: 2 }}>
-          <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              Tara Service Station Tyre Inventory & Storage
-            </Typography>
-            <Button
-              color="inherit"
-              startIcon={<Download />}
-              onClick={exportToCSV}
-            >
-              Export CSV
-            </Button>
-            <Button
-              color="inherit"
-              startIcon={<DeleteForever />}
-              onClick={() => setConfirmOpen(true)}
-            >
-              Delete All
-            </Button>
-          </Toolbar>
-        </AppBar>
-
-        {/* Main area */}
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-            p: 3,
-            height: "calc(100vh - 64px)",
-            overflow: "hidden",
-          }}
-        >
-          {/* Add form */}
-          <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 3 }}>
-            <Box display="flex" flexWrap="wrap" gap={2}>
-              <TextField
-                label="Item"
-                value={form.item}
-                onChange={(e) => setForm({ ...form, item: e.target.value })}
-                fullWidth
-              />
-              <TextField
-                label="Size"
-                value={form.size}
-                onChange={(e) => setForm({ ...form, size: e.target.value })}
-                fullWidth
-              />
-              <TextField
-                label="Quantity"
-                type="number"
-                value={form.quantity}
-                onChange={(e) =>
-                  setForm({ ...form, quantity: +e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Notes"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                fullWidth
-              />
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<Add />}
-                onClick={saveItem}
-                sx={{ minWidth: 150 }}
-              >
-                Add Item
-              </Button>
-            </Box>
-          </Paper>
-
-          {/* Totals + Search */}
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ px: 1 }}
+      <AnimatePresence mode="wait">
+        {showSplash ? (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            style={{ position: "absolute", width: "100%", height: "100%" }}
           >
-            <Typography variant="body1" fontWeight="bold">
-              Total Items: {totalItems} | Total Quantity: {totalQuantity} |
-              Distinct Sizes: {distinctSizes}
-            </Typography>
-            <TextField
-              placeholder="Search inventory..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
+            <SplashScreen onFinish={() => setShowSplash(false)} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="main"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <Box
+              sx={{
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
               }}
-              sx={{ width: 300 }}
-            />
-          </Box>
+            >
+              {/* Top bar */}
+              <AppBar position="static" color="primary" sx={{ boxShadow: 2 }}>
+                <Toolbar>
+                  <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                    Tara Service Station Tyre Inventory & Storage
+                  </Typography>
+                  <Button
+                    color="inherit"
+                    startIcon={<Download />}
+                    onClick={exportToCSV}
+                  >
+                    Export CSV
+                  </Button>
+                  <Button
+                    color="inherit"
+                    startIcon={<DeleteForever />}
+                    onClick={() => setConfirmOpen(true)}
+                  >
+                    Delete All
+                  </Button>
+                </Toolbar>
+              </AppBar>
 
-          {/* Table */}
-          <Paper
-            sx={{
-              flex: 1,
-              borderRadius: 2,
-              boxShadow: 3,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-            }}
-          >
-            {loading ? (
+              {/* Main area */}
               <Box
                 sx={{
                   flex: 1,
                   display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
+                  flexDirection: "column",
+                  gap: 3,
+                  p: 3,
+                  height: "calc(100vh - 64px)",
+                  overflow: "hidden",
                 }}
               >
-                <CircularProgress size={70} thickness={5} color="primary" />
+                {/* Add form */}
+                <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 3 }}>
+                  <Box display="flex" flexWrap="wrap" gap={2}>
+                    <TextField
+                      label="Item"
+                      value={form.item}
+                      onChange={(e) =>
+                        setForm({ ...form, item: e.target.value })
+                      }
+                      fullWidth
+                    />
+                    <TextField
+                      label="Size"
+                      value={form.size}
+                      onChange={(e) =>
+                        setForm({ ...form, size: e.target.value })
+                      }
+                      fullWidth
+                    />
+                    <TextField
+                      label="Quantity"
+                      type="number"
+                      value={form.quantity}
+                      onChange={(e) =>
+                        setForm({ ...form, quantity: +e.target.value })
+                      }
+                      fullWidth
+                    />
+                    <TextField
+                      label="Notes"
+                      value={form.notes}
+                      onChange={(e) =>
+                        setForm({ ...form, notes: e.target.value })
+                      }
+                      fullWidth
+                    />
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<Add />}
+                      onClick={saveItem}
+                      sx={{ minWidth: 150 }}
+                    >
+                      Add Item
+                    </Button>
+                  </Box>
+                </Paper>
+
+                {/* Totals + Search */}
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ px: 1 }}
+                >
+                  <Typography variant="body1" fontWeight="bold">
+                    Total Items: {totalItems} | Total Quantity: {totalQuantity}{" "}
+                    | Distinct Sizes: {distinctSizes}
+                  </Typography>
+                  <TextField
+                    placeholder="Search inventory..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ width: 300 }}
+                  />
+                </Box>
+
+                {/* Table */}
+                <Paper
+                  sx={{
+                    flex: 1,
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                  }}
+                >
+                  {loading ? (
+                    <Box
+                      sx={{
+                        flex: 1,
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <CircularProgress
+                        size={70}
+                        thickness={5}
+                        color="primary"
+                      />
+                    </Box>
+                  ) : (
+                    <DataGrid
+                      rows={filteredItems.map((i, idx) => ({
+                        id: idx + 1,
+                        ...i,
+                      }))}
+                      columns={columns}
+                      pageSize={8}
+                      rowsPerPageOptions={[8]}
+                      disableSelectionOnClick
+                      sx={{
+                        border: "none",
+                        flex: 1,
+                        "& .MuiDataGrid-columnHeaders": {
+                          backgroundColor: "#101820",
+                          color: "#fff",
+                          fontWeight: "bold",
+                        },
+                        "& .MuiDataGrid-row:hover": {
+                          backgroundColor: "#fff4f4",
+                        },
+                      }}
+                    />
+                  )}
+                </Paper>
               </Box>
-            ) : (
-              <DataGrid
-                rows={filteredItems.map((i, idx) => ({ id: idx + 1, ...i }))}
-                columns={columns}
-                pageSize={8}
-                rowsPerPageOptions={[8]}
-                disableSelectionOnClick
-                sx={{
-                  border: "none",
-                  flex: 1,
-                  "& .MuiDataGrid-columnHeaders": {
-                    backgroundColor: "#101820",
-                    color: "#fff",
-                    fontWeight: "bold",
-                  },
-                  "& .MuiDataGrid-row:hover": {
-                    backgroundColor: "#fff4f4",
-                  },
-                }}
-              />
-            )}
-          </Paper>
-        </Box>
 
-        {/* Edit quantity dialog */}
-        <Dialog open={!!editItem} onClose={() => setEditItem(null)}>
-          <DialogTitle>Edit Quantity</DialogTitle>
-          <DialogContent>
-            <TextField
-              type="number"
-              label="New Quantity"
-              fullWidth
-              value={editQty}
-              onChange={(e) => setEditQty(+e.target.value)}
-              sx={{ mt: 1 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditItem(null)}>Cancel</Button>
-            <Button onClick={updateQuantity} variant="contained">
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
+              {/* Edit quantity dialog */}
+              <Dialog open={!!editItem} onClose={() => setEditItem(null)}>
+                <DialogTitle>Edit Quantity</DialogTitle>
+                <DialogContent>
+                  <TextField
+                    type="number"
+                    label="New Quantity"
+                    fullWidth
+                    value={editQty}
+                    onChange={(e) => setEditQty(+e.target.value)}
+                    sx={{ mt: 1 }}
+                  />
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setEditItem(null)}>Cancel</Button>
+                  <Button onClick={updateQuantity} variant="contained">
+                    Save
+                  </Button>
+                </DialogActions>
+              </Dialog>
 
-        {/* Confirm delete all */}
-        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-          <DialogTitle>Confirm Delete All</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete <strong>all</strong> inventory
-              items?
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-            <Button color="error" variant="contained" onClick={deleteAll}>
-              Delete All
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
+              {/* Confirm delete all */}
+              <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+                <DialogTitle>Confirm Delete All</DialogTitle>
+                <DialogContent>
+                  <Typography>
+                    Are you sure you want to delete <strong>all</strong>{" "}
+                    inventory items?
+                  </Typography>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+                  <Button color="error" variant="contained" onClick={deleteAll}>
+                    Delete All
+                  </Button>
+                </DialogActions>
+              </Dialog>
+            </Box>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </ThemeProvider>
   );
 }
