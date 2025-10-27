@@ -1,0 +1,12 @@
+# --- Core Framework ---
+fastapi==0.115.0
+
+# --- ASGI server (for local + production run) ---
+uvicorn[standard]==0.30.0
+
+# --- Data handling ---
+pydantic==2.9.1
+python-multipart==0.0.9
+
+# --- Optional convenience (CORS middleware for React frontend) ---
+starlette==0.37.2
