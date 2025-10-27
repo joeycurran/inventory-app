@@ -27,7 +27,9 @@ conn.execute("""
 CREATE TABLE IF NOT EXISTS inventory (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item TEXT UNIQUE,
+    size TEXT,
     quantity INTEGER,
+    price REAL,
     notes TEXT,
     last_updated TEXT
 )
@@ -38,7 +40,9 @@ conn.close()
 # Data model for validation
 class Item(BaseModel):
     item: str
+    size: str
     quantity: int
+    price: float
     notes: str = ""
 
 
@@ -51,7 +55,10 @@ def get_items():
     rows = conn.execute("SELECT * FROM inventory").fetchall()
     conn.close()
     return [
-        dict(zip(["id", "item", "quantity", "notes", "last_updated"], r)) for r in rows
+        dict(
+            zip(["id", "item", "size", "quantity", "price", "notes", "last_updated"], r)
+        )
+        for r in rows
     ]
 
 
@@ -59,8 +66,15 @@ def get_items():
 def add_item(i: Item):
     conn = get_conn()
     conn.execute(
-        "INSERT OR REPLACE INTO inventory (item, quantity, notes, last_updated) VALUES (?, ?, ?, ?)",
-        (i.item, i.quantity, i.notes, datetime.datetime.now().isoformat()),
+        "INSERT OR REPLACE INTO inventory (item, size, quantity, price, notes, last_updated) VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            i.item,
+            i.size,
+            i.quantity,
+            i.price,
+            i.notes,
+            datetime.datetime.now().isoformat(),
+        ),
     )
     conn.commit()
     conn.close()
