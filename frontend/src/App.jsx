@@ -54,6 +54,7 @@ export default function App() {
     item: "",
     size: "",
     quantity: 0,
+    price: 0,
     notes: "",
   });
   const [search, setSearch] = useState("");
@@ -112,8 +113,14 @@ export default function App() {
   };
 
   const exportToCSV = () => {
-    const headers = ["Item", "Size", "Quantity", "Notes"];
-    const rows = items.map((i) => [i.item, i.size, i.quantity, i.notes]);
+    const headers = ["Item", "Size", "Quantity", "Price", "Notes"];
+    const rows = items.map((i) => [
+      i.item,
+      i.size,
+      i.quantity,
+      i.price,
+      i.notes,
+    ]);
     const csvContent =
       "data:text/csv;charset=utf-8," +
       [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
@@ -123,12 +130,15 @@ export default function App() {
     link.click();
   };
 
-  const filteredItems = items.filter(
-    (i) =>
-      i.item.toLowerCase().includes(search.toLowerCase()) ||
-      i.size.toLowerCase().includes(search.toLowerCase()) ||
-      i.notes.toLowerCase().includes(search.toLowerCase())
-  );
+  const query = search.trim().toLowerCase();
+  const filteredItems = !query
+    ? items
+    : items.filter((i) => {
+        const values = [i.item, i.size, i.notes].map(
+          (v) => v?.toLowerCase() || ""
+        );
+        return values.some((v) => v.includes(query));
+      });
 
   // Totals
   const totalItems = items.length;
@@ -139,6 +149,12 @@ export default function App() {
     { field: "item", headerName: "Item", flex: 1 },
     { field: "size", headerName: "Size", flex: 0.8 },
     { field: "quantity", headerName: "Quantity", flex: 0.6 },
+    {
+      field: "price",
+      headerName: "Price (€)",
+      flex: 0.6,
+      valueFormatter: (params) => `€${params.value?.toFixed(2) ?? "0.00"}`,
+    },
     { field: "notes", headerName: "Notes", flex: 1 },
     {
       field: "actions",
@@ -266,6 +282,19 @@ export default function App() {
                       fullWidth
                     />
                     <TextField
+                      label="Price (€)"
+                      type="number"
+                      value={form.price}
+                      onChange={(e) =>
+                        setForm({ ...form, price: +e.target.value })
+                      }
+                      fullWidth
+                      InputProps={{
+                        inputProps: { step: 0.01, min: 0 },
+                      }}
+                    />
+
+                    <TextField
                       label="Notes"
                       value={form.notes}
                       onChange={(e) =>
@@ -354,6 +383,9 @@ export default function App() {
                           backgroundColor: "#101820",
                           color: "#fff",
                           fontWeight: "bold",
+                          position: "sticky",
+                          top: 0,
+                          zIndex: 10,
                         },
                         "& .MuiDataGrid-row:hover": {
                           backgroundColor: "#fff4f4",
