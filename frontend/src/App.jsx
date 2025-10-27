@@ -30,7 +30,6 @@ import {
 
 const API_URL = "https://inventory-app-1-9frl.onrender.com";
 
-// 🟢 Texaco-inspired theme
 const theme = createTheme({
   palette: {
     primary: { main: "#DA291C" }, // Texaco Red
@@ -171,12 +170,6 @@ export default function App() {
       >
         {/* Top bar */}
         <AppBar position="static" color="primary" sx={{ boxShadow: 2 }}>
-          <Box
-            component="img"
-            src="/logo.jpeg"
-            alt="Texaco logo"
-            sx={{ height: 40, mr: 2 }}
-          />
           <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               Tara Service Station Tyre Inventory & Storage
