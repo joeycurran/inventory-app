@@ -28,7 +28,7 @@ import {
   Download,
 } from "@mui/icons-material";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://inventory-app-1-9frl.onrender.com";
 
 // 🟢 Texaco-inspired theme
 const theme = createTheme({
