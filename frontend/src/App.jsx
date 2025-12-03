@@ -47,6 +47,8 @@ const theme = createTheme({
 });
 
 export default function App() {
+  const [error, setError] = useState("");
+
   const [showSplash, setShowSplash] = useState(true);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,12 +89,32 @@ export default function App() {
   };
 
   const saveItem = async () => {
-    if (!form.item) return;
-    await axios.post(`${API_URL}/items`, form);
-    setForm({ item: "", size: "", quantity: 0, notes: "" });
+    // basic checks
+    if (!form.item || !form.size) {
+      setError("Please enter valid values.");
+      return;
+    }
+
+    const qty = form.quantity === "" ? 0 : Number(form.quantity);
+    const price = form.price === "" ? 0 : Number(form.price);
+
+    if (isNaN(qty) || isNaN(price) || qty < 0 || price < 0) {
+      setError("Please enter valid values.");
+      return;
+    }
+
+    // clear error if everything is fine
+    setError("");
+
+    await axios.post(`${API_URL}/items`, {
+      ...form,
+      quantity: qty,
+      price: price,
+    });
+
+    setForm({ item: "", size: "", quantity: "", price: "", notes: "" });
     loadItems();
   };
-
   const updateQuantity = async () => {
     await axios.put(`${API_URL}/items/${editItem}`, null, {
       params: { new_quantity: editQty },
@@ -276,18 +298,26 @@ export default function App() {
                       label="Quantity"
                       type="number"
                       value={form.quantity}
-                      onChange={(e) =>
-                        setForm({ ...form, quantity: +e.target.value })
-                      }
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm({
+                          ...form,
+                          quantity: val === "" ? "" : Number(val),
+                        });
+                      }}
                       fullWidth
                     />
                     <TextField
                       label="Price (€)"
                       type="number"
                       value={form.price}
-                      onChange={(e) =>
-                        setForm({ ...form, price: +e.target.value })
-                      }
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm({
+                          ...form,
+                          price: val === "" ? "" : Number(val),
+                        });
+                      }}
                       fullWidth
                       InputProps={{
                         inputProps: { step: 0.01, min: 0 },
@@ -312,6 +342,11 @@ export default function App() {
                       Add Item
                     </Button>
                   </Box>
+                  {error && (
+                    <Typography color="error" sx={{ mt: 1, width: "100%" }}>
+                      {error}
+                    </Typography>
+                  )}
                 </Paper>
 
                 {/* Totals + Search */}
