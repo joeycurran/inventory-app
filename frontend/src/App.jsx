@@ -32,14 +32,13 @@ import {
 } from "@mui/icons-material";
 
 const API_URL = "https://inventory-app-1-9frl.onrender.com";
-// const API_URL = "http://127.0.0.1:8000";
 
 const theme = createTheme({
   palette: {
-    primary: { main: "#DA291C" }, // Texaco Red
-    secondary: { main: "#007A33" }, // Texaco Green
+    primary: { main: "#DA291C" },
+    secondary: { main: "#007A33" },
     background: { default: "#EFEFEF" },
-    text: { primary: "#101820" }, // Jet Black
+    text: { primary: "#101820" },
   },
   typography: {
     fontFamily: "Poppins, sans-serif",
@@ -48,15 +47,16 @@ const theme = createTheme({
 
 export default function App() {
   const [error, setError] = useState("");
-
   const [showSplash, setShowSplash] = useState(true);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editData, setEditData] = useState(null);
+
   const [form, setForm] = useState({
     item: "",
     size: "",
-    quantity: 0,
-    price: 0,
+    quantity: "",
+    price: "",
     notes: "",
   });
   const [search, setSearch] = useState("");
@@ -64,23 +64,20 @@ export default function App() {
   const [editQty, setEditQty] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Splash screen timer (6 seconds)
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 3000);
+    const timer = setTimeout(() => setShowSplash(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
-  // Load items after splash ends
   useEffect(() => {
     if (!showSplash) loadItems();
   }, [showSplash]);
 
-  // Fetch inventory from backend
   const loadItems = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/items`);
-      setItems(res.data);
+      setItems([...res.data].sort((a, b) => b.id - a.id));
     } catch (err) {
       console.error("Error fetching items:", err);
     } finally {
@@ -89,7 +86,6 @@ export default function App() {
   };
 
   const saveItem = async () => {
-    // basic checks
     if (!form.item || !form.size) {
       setError("Please enter valid values.");
       return;
@@ -103,7 +99,6 @@ export default function App() {
       return;
     }
 
-    // clear error if everything is fine
     setError("");
 
     await axios.post(`${API_URL}/items`, {
@@ -113,6 +108,14 @@ export default function App() {
     });
 
     setForm({ item: "", size: "", quantity: "", price: "", notes: "" });
+    loadItems();
+  };
+  const openEditDialog = (row) => {
+    setEditData({ ...row });
+  };
+  const saveEditData = async () => {
+    await axios.put(`${API_URL}/items/update/${editData.id}`, editData);
+    setEditData(null);
     loadItems();
   };
   const updateQuantity = async () => {
@@ -162,36 +165,62 @@ export default function App() {
         return values.some((v) => v.includes(query));
       });
 
-  // Totals
-  const totalItems = items.length;
-  const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
-  const distinctSizes = new Set(items.map((i) => i.size)).size;
-
   const columns = [
-    { field: "item", headerName: "Item", flex: 1 },
-    { field: "size", headerName: "Size", flex: 0.8 },
-    { field: "quantity", headerName: "Quantity", flex: 0.6 },
+    {
+      field: "item",
+      headerName: "Item",
+      flex: 1,
+      headerAlign: "center",
+      align: "center",
+    },
+    {
+      field: "size",
+      headerName: "Size",
+      flex: 0.7,
+      headerAlign: "center",
+      align: "center",
+    },
+    {
+      field: "quantity",
+      headerName: "Quantity",
+      flex: 0.5,
+      headerAlign: "center",
+      align: "center",
+    },
     {
       field: "price",
       headerName: "Price (€)",
       flex: 0.6,
-      valueFormatter: (params) => `€${params.value?.toFixed(2) ?? "0.00"}`,
+      headerAlign: "center",
+      align: "center",
+      renderCell: (params) => {
+        console.log("Price params:", params.value, typeof params.value);
+        const num = params.value == null ? 0 : Number(params.value);
+        return `€${num.toFixed(2)}`;
+      },
     },
-    { field: "notes", headerName: "Notes", flex: 1 },
+    {
+      field: "notes",
+      headerName: "Notes",
+      flex: 1.2,
+      headerAlign: "center",
+      align: "center",
+    },
     {
       field: "actions",
       headerName: "Actions",
-      flex: 0.8,
+      flex: 0.7,
+      sortable: false,
+      filterable: false,
+      headerAlign: "center",
+      align: "center",
       renderCell: (params) => (
         <>
           <Button
             color="secondary"
             size="small"
             startIcon={<Edit />}
-            onClick={() => {
-              setEditItem(params.row.item);
-              setEditQty(params.row.quantity);
-            }}
+            onClick={() => openEditDialog(params.row)}
           >
             Edit
           </Button>
@@ -218,10 +247,10 @@ export default function App() {
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 0.6 }}
             style={{ position: "absolute", width: "100%", height: "100%" }}
           >
-            <SplashScreen onFinish={() => setShowSplash(false)} />
+            <SplashScreen />
           </motion.div>
         ) : (
           <motion.div
@@ -229,7 +258,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.4 }}
           >
             <Box
               sx={{
@@ -237,11 +266,9 @@ export default function App() {
                 height: "100vh",
                 display: "flex",
                 flexDirection: "column",
-                overflow: "hidden",
               }}
             >
-              {/* Top bar */}
-              <AppBar position="static" color="primary" sx={{ boxShadow: 2 }}>
+              <AppBar position="static" color="primary">
                 <Toolbar>
                   <Typography variant="h6" sx={{ flexGrow: 1 }}>
                     Tara Service Station Tyre Inventory & Storage
@@ -263,21 +290,31 @@ export default function App() {
                 </Toolbar>
               </AppBar>
 
-              {/* Main area */}
+              {/* Error message */}
+              {error && (
+                <Typography color="error" sx={{ mt: 1, ml: 3 }}>
+                  {error}
+                </Typography>
+              )}
+
               <Box
                 sx={{
                   flex: 1,
+                  p: 3,
                   display: "flex",
                   flexDirection: "column",
-                  gap: 3,
-                  p: 3,
-                  height: "calc(100vh - 64px)",
-                  overflow: "hidden",
+                  gap: 2,
                 }}
               >
-                {/* Add form */}
-                <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 3 }}>
-                  <Box display="flex" flexWrap="wrap" gap={2}>
+                {/* Compact 3-column form */}
+                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: 2,
+                    }}
+                  >
                     <TextField
                       label="Item"
                       value={form.item}
@@ -299,10 +336,10 @@ export default function App() {
                       type="number"
                       value={form.quantity}
                       onChange={(e) => {
-                        const val = e.target.value;
+                        const v = e.target.value;
                         setForm({
                           ...form,
-                          quantity: val === "" ? "" : Number(val),
+                          quantity: v === "" ? "" : Number(v),
                         });
                       }}
                       fullWidth
@@ -312,18 +349,12 @@ export default function App() {
                       type="number"
                       value={form.price}
                       onChange={(e) => {
-                        const val = e.target.value;
-                        setForm({
-                          ...form,
-                          price: val === "" ? "" : Number(val),
-                        });
+                        const v = e.target.value;
+                        setForm({ ...form, price: v === "" ? "" : Number(v) });
                       }}
                       fullWidth
-                      InputProps={{
-                        inputProps: { step: 0.01, min: 0 },
-                      }}
+                      InputProps={{ inputProps: { step: 0.01 } }}
                     />
-
                     <TextField
                       label="Notes"
                       value={form.notes}
@@ -337,31 +368,16 @@ export default function App() {
                       color="secondary"
                       startIcon={<Add />}
                       onClick={saveItem}
-                      sx={{ minWidth: 150 }}
                     >
                       Add Item
                     </Button>
                   </Box>
-                  {error && (
-                    <Typography color="error" sx={{ mt: 1, width: "100%" }}>
-                      {error}
-                    </Typography>
-                  )}
                 </Paper>
-
-                {/* Totals + Search */}
                 <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ px: 1 }}
+                  sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}
                 >
-                  <Typography variant="body1" fontWeight="bold">
-                    Total Items: {totalItems} | Total Quantity: {totalQuantity}{" "}
-                    | Distinct Sizes: {distinctSizes}
-                  </Typography>
                   <TextField
-                    placeholder="Search inventory..."
+                    placeholder="Search items..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     InputProps={{
@@ -374,11 +390,11 @@ export default function App() {
                     sx={{ width: 300 }}
                   />
                 </Box>
-
                 {/* Table */}
                 <Paper
                   sx={{
-                    flex: 1,
+                    flexGrow: 1,
+                    minHeight: "550px",
                     borderRadius: 2,
                     boxShadow: 3,
                     display: "flex",
@@ -395,58 +411,96 @@ export default function App() {
                         alignItems: "center",
                       }}
                     >
-                      <CircularProgress
-                        size={70}
-                        thickness={5}
-                        color="primary"
-                      />
+                      <CircularProgress size={70} thickness={5} />
                     </Box>
                   ) : (
                     <DataGrid
-                      rows={filteredItems.map((i, idx) => ({
-                        id: idx + 1,
-                        ...i,
-                      }))}
+                      rows={filteredItems}
                       columns={columns}
                       pageSize={8}
                       rowsPerPageOptions={[8]}
                       disableSelectionOnClick
-                      sx={{
-                        border: "none",
-                        flex: 1,
-                        "& .MuiDataGrid-columnHeaders": {
-                          backgroundColor: "#101820",
-                          color: "#fff",
-                          fontWeight: "bold",
-                          position: "sticky",
-                          top: 0,
-                          zIndex: 10,
-                        },
-                        "& .MuiDataGrid-row:hover": {
-                          backgroundColor: "#fff4f4",
-                        },
-                      }}
                     />
                   )}
                 </Paper>
               </Box>
 
-              {/* Edit quantity dialog */}
-              <Dialog open={!!editItem} onClose={() => setEditItem(null)}>
-                <DialogTitle>Edit Quantity</DialogTitle>
-                <DialogContent>
+              {/* Edit Quantity */}
+              <Dialog
+                open={!!editData}
+                onClose={() => setEditData(null)}
+                fullWidth
+                maxWidth="sm"
+              >
+                <DialogTitle>Edit Item</DialogTitle>
+                <DialogContent
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    mt: 1,
+                  }}
+                >
                   <TextField
-                    type="number"
-                    label="New Quantity"
+                    label="Item"
+                    value={editData?.item || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, item: e.target.value })
+                    }
                     fullWidth
-                    value={editQty}
-                    onChange={(e) => setEditQty(+e.target.value)}
-                    sx={{ mt: 1 }}
+                  />
+
+                  <TextField
+                    label="Size"
+                    value={editData?.size || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, size: e.target.value })
+                    }
+                    fullWidth
+                  />
+
+                  <TextField
+                    label="Quantity"
+                    type="number"
+                    value={editData?.quantity || ""}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        quantity: Number(e.target.value),
+                      })
+                    }
+                    fullWidth
+                  />
+
+                  <TextField
+                    label="Price (€)"
+                    type="number"
+                    value={editData?.price || ""}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        price: Number(e.target.value),
+                      })
+                    }
+                    fullWidth
+                    InputProps={{
+                      inputProps: { step: 0.01 },
+                    }}
+                  />
+
+                  <TextField
+                    label="Notes"
+                    value={editData?.notes || ""}
+                    onChange={(e) =>
+                      setEditData({ ...editData, notes: e.target.value })
+                    }
+                    fullWidth
                   />
                 </DialogContent>
+
                 <DialogActions>
-                  <Button onClick={() => setEditItem(null)}>Cancel</Button>
-                  <Button onClick={updateQuantity} variant="contained">
+                  <Button onClick={() => setEditData(null)}>Cancel</Button>
+                  <Button variant="contained" onClick={saveEditData}>
                     Save
                   </Button>
                 </DialogActions>
@@ -457,13 +511,12 @@ export default function App() {
                 <DialogTitle>Confirm Delete All</DialogTitle>
                 <DialogContent>
                   <Typography>
-                    Are you sure you want to delete <strong>all</strong>{" "}
-                    inventory items?
+                    Are you sure you want to delete all items?
                   </Typography>
                 </DialogContent>
                 <DialogActions>
                   <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-                  <Button color="error" variant="contained" onClick={deleteAll}>
+                  <Button variant="contained" color="error" onClick={deleteAll}>
                     Delete All
                   </Button>
                 </DialogActions>
