@@ -20,6 +20,7 @@ import {
   createTheme,
   ThemeProvider,
   InputAdornment,
+  IconButton,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -110,14 +111,17 @@ export default function App() {
     setForm({ item: "", size: "", quantity: "", price: "", notes: "" });
     loadItems();
   };
+
   const openEditDialog = (row) => {
     setEditData({ ...row });
   };
+
   const saveEditData = async () => {
     await axios.put(`${API_URL}/items/update/${editData.id}`, editData);
     setEditData(null);
     loadItems();
   };
+
   const updateQuantity = async () => {
     await axios.put(`${API_URL}/items/${editItem}`, null, {
       params: { new_quantity: editQty },
@@ -170,6 +174,7 @@ export default function App() {
       field: "item",
       headerName: "Item",
       flex: 1,
+      minWidth: 120,
       headerAlign: "center",
       align: "center",
     },
@@ -177,13 +182,15 @@ export default function App() {
       field: "size",
       headerName: "Size",
       flex: 0.7,
+      minWidth: 80,
       headerAlign: "center",
       align: "center",
     },
     {
       field: "quantity",
-      headerName: "Quantity",
+      headerName: "Qty",
       flex: 0.5,
+      minWidth: 70,
       headerAlign: "center",
       align: "center",
     },
@@ -191,10 +198,10 @@ export default function App() {
       field: "price",
       headerName: "Price (€)",
       flex: 0.6,
+      minWidth: 90,
       headerAlign: "center",
       align: "center",
       renderCell: (params) => {
-        console.log("Price params:", params.value, typeof params.value);
         const num = params.value == null ? 0 : Number(params.value);
         return `€${num.toFixed(2)}`;
       },
@@ -203,36 +210,56 @@ export default function App() {
       field: "notes",
       headerName: "Notes",
       flex: 1.2,
+      minWidth: 120,
       headerAlign: "center",
       align: "center",
     },
     {
       field: "actions",
       headerName: "Actions",
-      flex: 0.7,
+      flex: 0.8,
+      minWidth: 150,
       sortable: false,
       filterable: false,
       headerAlign: "center",
       align: "center",
       renderCell: (params) => (
-        <>
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          <IconButton
+            color="secondary"
+            size="small"
+            onClick={() => openEditDialog(params.row)}
+            sx={{ display: { xs: "inline-flex", sm: "none" } }}
+          >
+            <Edit fontSize="small" />
+          </IconButton>
           <Button
             color="secondary"
             size="small"
             startIcon={<Edit />}
             onClick={() => openEditDialog(params.row)}
+            sx={{ display: { xs: "none", sm: "inline-flex" } }}
           >
             Edit
           </Button>
+          <IconButton
+            color="error"
+            size="small"
+            onClick={() => deleteItem(params.row.item)}
+            sx={{ display: { xs: "inline-flex", sm: "none" } }}
+          >
+            <Delete fontSize="small" />
+          </IconButton>
           <Button
             color="error"
             size="small"
             startIcon={<Delete />}
             onClick={() => deleteItem(params.row.item)}
+            sx={{ display: { xs: "none", sm: "inline-flex" } }}
           >
             Delete
           </Button>
-        </>
+        </Box>
       ),
     },
   ];
@@ -269,30 +296,101 @@ export default function App() {
               }}
             >
               <AppBar position="static" color="primary">
-                <Toolbar>
-                  <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                    Tara Service Station Tyre Inventory & Storage
+                <Toolbar sx={{ gap: { xs: 0.5, sm: 1 } }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      flexGrow: 1,
+                      fontSize: { xs: "0.85rem", sm: "1rem", md: "1.25rem" },
+                    }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "none", md: "inline" } }}
+                    >
+                      Tara Service Station Tyre Inventory & Storage
+                    </Box>
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "inline", md: "none" } }}
+                    >
+                      Tyre Inventory
+                    </Box>
                   </Typography>
+
+                  <IconButton
+                    color="inherit"
+                    onClick={exportToCSV}
+                    size="small"
+                    sx={{ display: { xs: "inline-flex", sm: "none" } }}
+                  >
+                    <Download fontSize="small" />
+                  </IconButton>
                   <Button
                     color="inherit"
                     startIcon={<Download />}
                     onClick={exportToCSV}
+                    sx={{
+                      display: { xs: "none", sm: "inline-flex" },
+                      fontSize: { sm: "0.8rem", md: "0.875rem" },
+                    }}
                   >
-                    Export CSV
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "none", md: "inline" } }}
+                    >
+                      Export CSV
+                    </Box>
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "inline", md: "none" } }}
+                    >
+                      CSV
+                    </Box>
                   </Button>
+
+                  <IconButton
+                    color="inherit"
+                    onClick={() => setConfirmOpen(true)}
+                    size="small"
+                    sx={{ display: { xs: "inline-flex", sm: "none" } }}
+                  >
+                    <DeleteForever fontSize="small" />
+                  </IconButton>
                   <Button
                     color="inherit"
                     startIcon={<DeleteForever />}
                     onClick={() => setConfirmOpen(true)}
+                    sx={{
+                      display: { xs: "none", sm: "inline-flex" },
+                      fontSize: { sm: "0.8rem", md: "0.875rem" },
+                    }}
                   >
-                    Delete All
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "none", md: "inline" } }}
+                    >
+                      Delete All
+                    </Box>
+                    <Box
+                      component="span"
+                      sx={{ display: { xs: "inline", md: "none" } }}
+                    >
+                      Clear
+                    </Box>
                   </Button>
                 </Toolbar>
               </AppBar>
 
-              {/* Error message */}
               {error && (
-                <Typography color="error" sx={{ mt: 1, ml: 3 }}>
+                <Typography
+                  color="error"
+                  sx={{
+                    mt: 1,
+                    ml: { xs: 2, sm: 3 },
+                    fontSize: { xs: "0.85rem", sm: "1rem" },
+                  }}
+                >
                   {error}
                 </Typography>
               )}
@@ -300,19 +398,24 @@ export default function App() {
               <Box
                 sx={{
                   flex: 1,
-                  p: 3,
+                  p: { xs: 1, sm: 2, md: 3 },
                   display: "flex",
                   flexDirection: "column",
-                  gap: 2,
+                  gap: { xs: 1.5, sm: 2 },
                 }}
               >
-                {/* Compact 3-column form */}
-                <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2 }}>
+                <Paper
+                  sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2, boxShadow: 2 }}
+                >
                   <Box
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 2,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, 1fr)",
+                        md: "repeat(3, 1fr)",
+                      },
+                      gap: { xs: 1.5, sm: 2 },
                     }}
                   >
                     <TextField
@@ -322,6 +425,7 @@ export default function App() {
                         setForm({ ...form, item: e.target.value })
                       }
                       fullWidth
+                      size="small"
                     />
                     <TextField
                       label="Size"
@@ -330,6 +434,7 @@ export default function App() {
                         setForm({ ...form, size: e.target.value })
                       }
                       fullWidth
+                      size="small"
                     />
                     <TextField
                       label="Quantity"
@@ -343,6 +448,7 @@ export default function App() {
                         });
                       }}
                       fullWidth
+                      size="small"
                     />
                     <TextField
                       label="Price (€)"
@@ -353,6 +459,7 @@ export default function App() {
                         setForm({ ...form, price: v === "" ? "" : Number(v) });
                       }}
                       fullWidth
+                      size="small"
                       InputProps={{ inputProps: { step: 0.01 } }}
                     />
                     <TextField
@@ -362,19 +469,26 @@ export default function App() {
                         setForm({ ...form, notes: e.target.value })
                       }
                       fullWidth
+                      size="small"
                     />
                     <Button
                       variant="contained"
                       color="secondary"
                       startIcon={<Add />}
                       onClick={saveItem}
+                      fullWidth
                     >
                       Add Item
                     </Button>
                   </Box>
                 </Paper>
+
                 <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    mb: { xs: 0.5, sm: 1 },
+                  }}
                 >
                   <TextField
                     placeholder="Search items..."
@@ -387,14 +501,15 @@ export default function App() {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{ width: 300 }}
+                    size="small"
+                    sx={{ width: { xs: "100%", sm: 300 } }}
                   />
                 </Box>
-                {/* Table */}
+
                 <Paper
                   sx={{
                     flexGrow: 1,
-                    minHeight: "550px",
+                    minHeight: { xs: "400px", sm: "550px" },
                     borderRadius: 2,
                     boxShadow: 3,
                     display: "flex",
@@ -420,12 +535,25 @@ export default function App() {
                       pageSize={8}
                       rowsPerPageOptions={[8]}
                       disableSelectionOnClick
+                      getRowId={(row) => row.id}
+                      sx={{
+                        "& .MuiDataGrid-columnHeaders": {
+                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                          minHeight: "40px !important",
+                          maxHeight: "40px !important",
+                        },
+                        "& .MuiDataGrid-cell": {
+                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        },
+                        "& .MuiDataGrid-row": {
+                          minHeight: { xs: "45px", sm: "52px" },
+                        },
+                      }}
                     />
                   )}
                 </Paper>
               </Box>
 
-              {/* Edit Quantity */}
               <Dialog
                 open={!!editData}
                 onClose={() => setEditData(null)}
@@ -506,7 +634,6 @@ export default function App() {
                 </DialogActions>
               </Dialog>
 
-              {/* Confirm delete all */}
               <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
                 <DialogTitle>Confirm Delete All</DialogTitle>
                 <DialogContent>

@@ -130,6 +130,36 @@ def set_item_quantity(item: str, new_quantity: int):
     return {"status": "updated", "item": item, "new_quantity": new_quantity}
 
 
+@app.put("/items/update/{id}")
+def update_item_full(id: int, data: dict):
+    conn = get_conn()
+    cur = conn.execute("SELECT * FROM inventory WHERE id=?", (id,))
+    if not cur.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    conn.execute(
+        """
+        UPDATE inventory
+        SET item=?, size=?, quantity=?, price=?, notes=?, last_updated=?
+        WHERE id=?
+    """,
+        (
+            data.get("item"),
+            data.get("size"),
+            data.get("quantity"),
+            data.get("price"),
+            data.get("notes"),
+            datetime.datetime.now().isoformat(),
+            id,
+        ),
+    )
+
+    conn.commit()
+    conn.close()
+    return {"status": "updated"}
+
+
 @app.delete("/items")
 def delete_all_items():
     conn = get_conn()
